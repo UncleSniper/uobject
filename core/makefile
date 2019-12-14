@@ -6,8 +6,9 @@ DESTDIR=/usr
 INCDIR=$(DESTDIR)/include/uobject
 LIBDIR=$(DESTDIR)/lib
 LDFLAGS=-fPIC
-CFLAGS=-fPIC $(WARN_FLAGS)
+CFLAGS=-fPIC $(WARN_FLAGS) -DBUILDING_UOBJ_CORE $(EXTRA_CFLAGS)
 WARN_FLAGS=-Wall -Wextra -pedantic
+EXTRA_CFLAGS=
 INSTALL=install
 
 SRC=$(shell find src -name '*.c')

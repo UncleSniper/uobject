@@ -11,24 +11,24 @@ typedef struct uobj_hashmap_callbacks {
 } uobj_hashmap_callbacks_t;
 
 typedef struct uobj_hashmap_node {
-	uobj_variant_t key;
+	UOBJ_CORE_CONST uobj_variant_t key;
 	uobj_variant_t value;
-	struct uobj_hashmap_node *next;
+	struct uobj_hashmap_node *UOBJ_CORE_CONST next;
 } uobj_hashmap_node_t;
 
 typedef struct uobj_hashmap {
-	const uobj_hashmap_callbacks_t *callbacks;
-	size_t modulus;
-	size_t size;
-	uobj_hashmap_node_t **nodes;
-	uobj_hashtable_used_link_t *links;
-	size_t first_used;
+	const uobj_hashmap_callbacks_t *UOBJ_CORE_CONST callbacks;
+	UOBJ_CORE_CONST size_t modulus;
+	UOBJ_CORE_CONST size_t size;
+	uobj_hashmap_node_t *UOBJ_CORE_CONST *UOBJ_CORE_CONST nodes;
+	uobj_hashtable_used_link_t *UOBJ_CORE_CONST links;
+	UOBJ_CORE_CONST size_t first_used;
 } uobj_hashmap_t;
 
 typedef struct uobj_hashmap_iterator {
-	const uobj_hashmap_t *map;
-	size_t slot_index;
-	uobj_hashmap_node_t *node;
+	const uobj_hashmap_t *UOBJ_CORE_CONST map;
+	UOBJ_CORE_CONST size_t slot_index;
+	uobj_hashmap_node_t *UOBJ_CORE_CONST node;
 } uobj_hashmap_iterator_t;
 
 int uobj_hashmap_init(

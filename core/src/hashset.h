@@ -10,23 +10,23 @@ typedef struct uobj_hashset_callbacks {
 } uobj_hashset_callbacks_t;
 
 typedef struct uobj_hashset_node {
-	uobj_variant_t value;
-	struct uobj_hashset_node *next;
+	UOBJ_CORE_CONST uobj_variant_t value;
+	struct uobj_hashset_node *UOBJ_CORE_CONST next;
 } uobj_hashset_node_t;
 
 typedef struct uobj_hashset {
-	const uobj_hashset_callbacks_t *callbacks;
-	size_t modulus;
-	size_t size;
-	uobj_hashset_node_t **nodes;
-	uobj_hashtable_used_link_t *links;
-	size_t first_used;
+	const uobj_hashset_callbacks_t *UOBJ_CORE_CONST callbacks;
+	UOBJ_CORE_CONST size_t modulus;
+	UOBJ_CORE_CONST size_t size;
+	uobj_hashset_node_t *UOBJ_CORE_CONST *UOBJ_CORE_CONST nodes;
+	uobj_hashtable_used_link_t *UOBJ_CORE_CONST links;
+	UOBJ_CORE_CONST size_t first_used;
 } uobj_hashset_t;
 
 typedef struct uobj_hashset_iterator {
-	const uobj_hashset_t *set;
-	size_t slot_index;
-	uobj_hashset_node_t *node;
+	const uobj_hashset_t *UOBJ_CORE_CONST set;
+	UOBJ_CORE_CONST size_t slot_index;
+	uobj_hashset_node_t *UOBJ_CORE_CONST node;
 } uobj_hashset_iterator_t;
 
 int uobj_hashset_init(

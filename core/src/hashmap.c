@@ -40,7 +40,7 @@ uobj_hashmap_t *uobj_hashmap_new(
 	map = (uobj_hashmap_t*)malloc(sizeof(uobj_hashmap_t));
 	if(!map)
 		return NULL;
-	if(uobj_hashmap_init(map, callbacks, modulus)) {
+	if(!uobj_hashmap_init(map, callbacks, modulus)) {
 		free(map);
 		return NULL;
 	}

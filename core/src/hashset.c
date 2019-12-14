@@ -40,7 +40,7 @@ uobj_hashset_t *uobj_hashset_new(
 	set = (uobj_hashset_t*)malloc(sizeof(uobj_hashset_t));
 	if(!set)
 		return NULL;
-	if(uobj_hashset_init(set, callbacks, modulus)) {
+	if(!uobj_hashset_init(set, callbacks, modulus)) {
 		free(set);
 		return NULL;
 	}
