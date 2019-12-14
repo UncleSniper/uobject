@@ -8,10 +8,7 @@
 
 int uobj_hashmap_init(
 	uobj_hashmap_t *map,
-	uobj_hash_function_t hash,
-	uobj_variant_comparator_t key_comparator,
-	uobj_variant_destructor_t key_destructor,
-	uobj_variant_destructor_t value_destructor,
+	const uobj_hashmap_callbacks_t *callbacks,
 	size_t modulus
 ) {
 	size_t arena_size;
@@ -26,10 +23,7 @@ int uobj_hashmap_init(
 	if(!map->nodes)
 		return 0;
 	memset(map->nodes, 0, sizeof(uobj_hashmap_node_t*) * modulus);
-	map->hash = hash;
-	map->key_comparator = key_comparator;
-	map->key_destructor = key_destructor;
-	map->value_destructor = value_destructor;
+	map->callbacks = callbacks;
 	map->modulus = modulus;
 	map->size = (size_t)0u;
 	/* uobj_hashmap_node_t should be maximally aligned, so no alignment issue here */
@@ -39,17 +33,14 @@ int uobj_hashmap_init(
 }
 
 uobj_hashmap_t *uobj_hashmap_new(
-	uobj_hash_function_t hash,
-	uobj_variant_comparator_t key_comparator,
-	uobj_variant_destructor_t key_destructor,
-	uobj_variant_destructor_t value_destructor,
+	const uobj_hashmap_callbacks_t *callbacks,
 	size_t modulus
 ) {
 	uobj_hashmap_t *map;
 	map = (uobj_hashmap_t*)malloc(sizeof(uobj_hashmap_t));
 	if(!map)
 		return NULL;
-	if(uobj_hashmap_init(map, hash, key_comparator, key_destructor, value_destructor, modulus)) {
+	if(uobj_hashmap_init(map, callbacks, modulus)) {
 		free(map);
 		return NULL;
 	}
@@ -61,12 +52,14 @@ void uobj_hashmap_destroy(
 ) {
 	size_t slot_index;
 	uobj_hashmap_node_t *node, *next_node;
+	const uobj_hashmap_callbacks_t *callbacks;
+	callbacks = map->callbacks;
 	for(slot_index = map->first_used; slot_index != map->modulus; slot_index = map->links[slot_index].next) {
 		for(node = map->nodes[slot_index]; node; node = next_node) {
-			if(map->key_destructor)
-				map->key_destructor(&node->key);
-			if(map->value_destructor)
-				map->value_destructor(&node->value);
+			if(callbacks->key_destructor)
+				callbacks->key_destructor(&node->key);
+			if(callbacks->value_destructor)
+				callbacks->value_destructor(&node->value);
 			next_node = node->next;
 			free(node);
 		}
@@ -92,17 +85,19 @@ int uobj_hashmap_put(
 	size_t slot_index;
 	uobj_hashmap_node_t *node, **node_head;
 	uobj_hashtable_used_link_t *link;
-	slot_index = (size_t)map->hash(key) % map->modulus;
+	const uobj_hashmap_callbacks_t *callbacks;
+	callbacks = map->callbacks;
+	slot_index = (size_t)callbacks->hash(key) % map->modulus;
 	node_head = map->nodes + slot_index;
 	for(node = *node_head; node; node = node->next) {
-		if(!map->key_comparator(key, &node->key))
+		if(!callbacks->key_comparator(key, &node->key))
 			break;
 	}
 	if(node) {
 		if(old_value)
 			memcpy(old_value, &node->value, sizeof(uobj_variant_t));
-		else if(map->value_destructor)
-			map->value_destructor(&node->value);
+		else if(callbacks->value_destructor)
+			callbacks->value_destructor(&node->value);
 		memcpy(&node->value, value, sizeof(uobj_variant_t));
 		errno = EEXIST;
 		return 0;
@@ -133,9 +128,11 @@ int uobj_hashmap_get(
 ) {
 	size_t slot_index;
 	uobj_hashmap_node_t *node;
-	slot_index = (size_t)map->hash(key) % map->modulus;
+	const uobj_hashmap_callbacks_t *callbacks;
+	callbacks = map->callbacks;
+	slot_index = (size_t)callbacks->hash(key) % map->modulus;
 	for(node = map->nodes[slot_index]; node; node = node->next) {
-		if(!map->key_comparator(key, &node->key))
+		if(!callbacks->key_comparator(key, &node->key))
 			break;
 	}
 	if(!node) {
@@ -149,6 +146,22 @@ int uobj_hashmap_get(
 	return 1;
 }
 
+int uobj_hashmap_has_key(
+	const uobj_hashmap_t *map,
+	const uobj_variant_t *key
+) {
+	size_t slot_index;
+	uobj_hashmap_node_t *node;
+	const uobj_hashmap_callbacks_t *callbacks;
+	callbacks = map->callbacks;
+	slot_index = (size_t)callbacks->hash(key) % map->modulus;
+	for(node = map->nodes[slot_index]; node; node = node->next) {
+		if(!callbacks->key_comparator(key, &node->key))
+			return 1;
+	}
+	return 0;
+}
+
 int uobj_hashmap_remove(
 	uobj_hashmap_t *map,
 	const uobj_variant_t *key,
@@ -157,21 +170,23 @@ int uobj_hashmap_remove(
 	size_t slot_index;
 	uobj_hashmap_node_t *node, **node_ref;
 	uobj_hashtable_used_link_t *link;
-	slot_index = (size_t)map->hash(key) % map->modulus;
+	const uobj_hashmap_callbacks_t *callbacks;
+	callbacks = map->callbacks;
+	slot_index = (size_t)callbacks->hash(key) % map->modulus;
 	for(node_ref = map->nodes + slot_index; (node = *node_ref); node_ref = &node->next) {
-		if(!map->key_comparator(key, &node->key))
+		if(!callbacks->key_comparator(key, &node->key))
 			break;
 	}
 	if(!node) {
 		errno = ENOENT;
 		return 0;
 	}
-	if(map->key_destructor)
-		map->key_destructor(&node->key);
+	if(callbacks->key_destructor)
+		callbacks->key_destructor(&node->key);
 	if(old_value)
 		memcpy(old_value, &node->value, sizeof(uobj_variant_t));
-	else if(map->value_destructor)
-		map->value_destructor(&node->value);
+	else if(callbacks->value_destructor)
+		callbacks->value_destructor(&node->value);
 	*node_ref = node->next;
 	free(node);
 	if(!map->nodes[slot_index]) {
@@ -192,18 +207,20 @@ void uobj_hashmap_clear(
 ) {
 	size_t slot_index;
 	uobj_hashmap_node_t *node, *next_node;
+	const uobj_hashmap_callbacks_t *callbacks;
+	callbacks = map->callbacks;
 	for(slot_index = map->first_used; slot_index != map->modulus; slot_index = map->links[slot_index].next) {
 		for(node = map->nodes[slot_index]; node; node = next_node) {
-			if(map->key_destructor)
-				map->key_destructor(&node->key);
-			if(map->value_destructor)
-				map->value_destructor(&node->value);
+			if(callbacks->key_destructor)
+				callbacks->key_destructor(&node->key);
+			if(callbacks->value_destructor)
+				callbacks->value_destructor(&node->value);
 			next_node = node->next;
 			free(node);
 		}
 		map->nodes[slot_index] = NULL;
 	}
-	map->size = (size_t)0;
+	map->size = (size_t)0u;
 	map->first_used = map->modulus;
 }
 

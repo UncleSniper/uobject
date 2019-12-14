@@ -3,15 +3,19 @@
 
 #include "hashtable.h"
 
+typedef struct uobj_hashset_callbacks {
+	uobj_hash_function_t hash;
+	uobj_variant_comparator_t value_comparator;
+	uobj_variant_destructor_t value_destructor;
+} uobj_hashset_callbacks_t;
+
 typedef struct uobj_hashset_node {
 	uobj_variant_t value;
 	struct uobj_hashset_node *next;
 } uobj_hashset_node_t;
 
 typedef struct uobj_hashset {
-	uobj_hash_function_t hash;
-	uobj_variant_comparator_t value_comparator;
-	uobj_variant_destructor_t value_destructor;
+	const uobj_hashset_callbacks_t *callbacks;
 	size_t modulus;
 	size_t size;
 	uobj_hashset_node_t **nodes;
@@ -27,10 +31,61 @@ typedef struct uobj_hashset_iterator {
 
 int uobj_hashset_init(
 	uobj_hashset_t *set,
-	uobj_hash_function_t hash,
-	uobj_variant_comparator_t value_comparator,
-	uobj_variant_destructor_t value_destructor,
+	const uobj_hashset_callbacks_t *callbacks,
 	size_t modulus
+);
+
+uobj_hashset_t *uobj_hashset_new(
+	const uobj_hashset_callbacks_t *callbacks,
+	size_t modulus
+);
+
+void uobj_hashset_destroy(
+	const uobj_hashset_t *set
+);
+
+void uobj_hashset_delete(
+	uobj_hashset_t *set
+);
+
+int uobj_hashset_add(
+	uobj_hashset_t *set,
+	const uobj_variant_t *value
+);
+
+int uobj_hashset_get(
+	const uobj_hashset_t *set,
+	const uobj_variant_t *lookup_value,
+	const uobj_variant_t **held_value
+);
+
+int uobj_hashset_contains(
+	const uobj_hashset_t *set,
+	const uobj_variant_t *value
+);
+
+int uobj_hashset_remove(
+	uobj_hashset_t *set,
+	const uobj_variant_t *value,
+	uobj_variant_t *old_value
+);
+
+void uobj_hashset_clear(
+	uobj_hashset_t *set
+);
+
+void uobj_hashset_iterator_init(
+	uobj_hashset_iterator_t *iterator,
+	const uobj_hashset_t *set
+);
+
+uobj_hashset_iterator_t *uobj_hashset_iterator_new(
+	const uobj_hashset_t *set
+);
+
+int uobj_hashset_iterator_next(
+	uobj_hashset_iterator_t *iterator,
+	const uobj_variant_t **value
 );
 
 #endif /* UOBJECT_HASHSET_H */

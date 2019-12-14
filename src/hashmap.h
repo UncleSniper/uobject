@@ -3,6 +3,13 @@
 
 #include "hashtable.h"
 
+typedef struct uobj_hashmap_callbacks {
+	uobj_hash_function_t hash;
+	uobj_variant_comparator_t key_comparator;
+	uobj_variant_destructor_t key_destructor;
+	uobj_variant_destructor_t value_destructor;
+} uobj_hashmap_callbacks_t;
+
 typedef struct uobj_hashmap_node {
 	uobj_variant_t key;
 	uobj_variant_t value;
@@ -10,10 +17,7 @@ typedef struct uobj_hashmap_node {
 } uobj_hashmap_node_t;
 
 typedef struct uobj_hashmap {
-	uobj_hash_function_t hash;
-	uobj_variant_comparator_t key_comparator;
-	uobj_variant_destructor_t key_destructor;
-	uobj_variant_destructor_t value_destructor;
+	const uobj_hashmap_callbacks_t *callbacks;
 	size_t modulus;
 	size_t size;
 	uobj_hashmap_node_t **nodes;
@@ -29,18 +33,12 @@ typedef struct uobj_hashmap_iterator {
 
 int uobj_hashmap_init(
 	uobj_hashmap_t *map,
-	uobj_hash_function_t hash,
-	uobj_variant_comparator_t key_comparator,
-	uobj_variant_destructor_t key_destructor,
-	uobj_variant_destructor_t value_destructor,
+	const uobj_hashmap_callbacks_t *callbacks,
 	size_t modulus
 );
 
 uobj_hashmap_t *uobj_hashmap_new(
-	uobj_hash_function_t hash,
-	uobj_variant_comparator_t key_comparator,
-	uobj_variant_destructor_t key_destructor,
-	uobj_variant_destructor_t value_destructor,
+	const uobj_hashmap_callbacks_t *callbacks,
 	size_t modulus
 );
 
