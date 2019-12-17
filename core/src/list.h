@@ -53,6 +53,12 @@ int uobj_list_add_back(
 	const uobj_variant_t *value
 );
 
+int uobj_list_add_before(
+	uobj_list_t *list,
+	size_t index,
+	const uobj_variant_t *value
+);
+
 int uobj_list_get_front(
 	const uobj_list_t *list,
 	uobj_variant_t **value
@@ -96,6 +102,10 @@ void uobj_list_iterator_init(
 
 uobj_list_iterator_t *uobj_list_iterator_new(
 	const uobj_list_t *list
+);
+
+uobj_variant_t *uobj_list_iterator_get(
+	const uobj_list_iterator_t *iterator
 );
 
 int uobj_list_iterator_next(
