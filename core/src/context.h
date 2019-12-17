@@ -38,13 +38,14 @@ void uobj_context_destroy_class_variant(
 	const uobj_variant_t *value
 );
 
-int uobj_context_init(
+uobj_error_t uobj_context_init(
 	uobj_context_t *context,
 	const uobj_context_config_t *config
 );
 
 uobj_context_t *uobj_context_new(
-	const uobj_context_config_t *config
+	const uobj_context_config_t *config,
+	uobj_error_t *error
 );
 
 void uobj_context_destroy(
@@ -57,7 +58,8 @@ void uobj_context_delete(
 
 uobj_interface_t *uobj_context_register_interface(
 	uobj_context_t *context,
-	const char *name
+	const char *name,
+	uobj_error_t *error
 );
 
 int uobj_context_has_interface(
@@ -67,12 +69,14 @@ int uobj_context_has_interface(
 
 uobj_interface_t *uobj_context_get_interface(
 	const uobj_context_t *context,
-	const char *name
+	const char *name,
+	uobj_error_t *error
 );
 
 uobj_class_t *uobj_context_register_class(
 	uobj_context_t *context,
-	const char *name
+	const char *name,
+	uobj_error_t *error
 );
 
 int uobj_context_has_class(
@@ -82,7 +86,8 @@ int uobj_context_has_class(
 
 uobj_class_t *uobj_context_get_class(
 	const uobj_context_t *context,
-	const char *name
+	const char *name,
+	uobj_error_t *error
 );
 
 #endif /* UOBJECT_CONTEXT_H */

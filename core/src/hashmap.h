@@ -1,6 +1,7 @@
 #ifndef UOBJECT_HASHMAP_H
 #define UOBJECT_HASHMAP_H
 
+#include "error.h"
 #include "hashtable.h"
 
 typedef struct uobj_hashmap_callbacks {
@@ -31,7 +32,7 @@ typedef struct uobj_hashmap_iterator {
 	uobj_hashmap_node_t *UOBJ_CORE_CONST node;
 } uobj_hashmap_iterator_t;
 
-int uobj_hashmap_init(
+uobj_error_t uobj_hashmap_init(
 	uobj_hashmap_t *map,
 	const uobj_hashmap_callbacks_t *callbacks,
 	size_t modulus
@@ -39,7 +40,8 @@ int uobj_hashmap_init(
 
 uobj_hashmap_t *uobj_hashmap_new(
 	const uobj_hashmap_callbacks_t *callbacks,
-	size_t modulus
+	size_t modulus,
+	uobj_error_t *error
 );
 
 void uobj_hashmap_destroy(
@@ -50,14 +52,14 @@ void uobj_hashmap_delete(
 	uobj_hashmap_t *map
 );
 
-int uobj_hashmap_put(
+uobj_error_t uobj_hashmap_put(
 	uobj_hashmap_t *map,
 	const uobj_variant_t *key,
 	const uobj_variant_t *value,
 	uobj_variant_t *old_value
 );
 
-int uobj_hashmap_get(
+uobj_error_t uobj_hashmap_get(
 	const uobj_hashmap_t *map,
 	const uobj_variant_t *key,
 	uobj_variant_t **value
@@ -68,7 +70,7 @@ int uobj_hashmap_has_key(
 	const uobj_variant_t *key
 );
 
-int uobj_hashmap_remove(
+uobj_error_t uobj_hashmap_remove(
 	uobj_hashmap_t *map,
 	const uobj_variant_t *key,
 	uobj_variant_t *old_value
@@ -84,10 +86,11 @@ void uobj_hashmap_iterator_init(
 );
 
 uobj_hashmap_iterator_t *uobj_hashmap_iterator_new(
-	const uobj_hashmap_t *map
+	const uobj_hashmap_t *map,
+	uobj_error_t *error
 );
 
-int uobj_hashmap_iterator_next(
+uobj_error_t uobj_hashmap_iterator_next(
 	uobj_hashmap_iterator_t *iterator,
 	const uobj_variant_t **key,
 	uobj_variant_t **value

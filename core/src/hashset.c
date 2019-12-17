@@ -1,4 +1,3 @@
-#include <errno.h>
 #include <string.h>
 
 #include "tweaks.h"
@@ -6,7 +5,7 @@
 
 #define SLOT_ARENA_CONTRIB (sizeof(uobj_hashset_node_t*) + sizeof(uobj_hashtable_used_link_t))
 
-int uobj_hashset_init(
+uobj_error_t uobj_hashset_init(
 	uobj_hashset_t *set,
 	const uobj_hashset_callbacks_t *callbacks,
 	size_t modulus
@@ -15,13 +14,11 @@ int uobj_hashset_init(
 	if(!modulus)
 		modulus = (size_t)UOBJECT_HASHSET_DEFAULT_MODULUS;
 	arena_size = modulus * SLOT_ARENA_CONTRIB;
-	if(arena_size / SLOT_ARENA_CONTRIB != modulus) {
-		errno = EDOM;
-		return 0;
-	}
+	if(arena_size / SLOT_ARENA_CONTRIB != modulus)
+		return UOBJ_ERR_MODULUS_OUT_OF_RANGE;
 	set->nodes = (uobj_hashset_node_t**)malloc(arena_size);
 	if(!set->nodes)
-		return 0;
+		return UOBJ_ERR_OUT_OF_MEMORY;
 	memset(set->nodes, 0, sizeof(uobj_hashset_node_t*) * modulus);
 	set->callbacks = callbacks;
 	set->modulus = modulus;
@@ -29,18 +26,22 @@ int uobj_hashset_init(
 	/* uobj_hashset_node_t should be maximally aligned, so no alignment issue here */
 	set->links = (uobj_hashtable_used_link_t*)(set->nodes + modulus);
 	set->first_used = modulus;
-	return 1;
+	return UOBJ_OK;
 }
 
 uobj_hashset_t *uobj_hashset_new(
 	const uobj_hashset_callbacks_t *callbacks,
-	size_t modulus
+	size_t modulus,
+	uobj_error_t *error
 ) {
 	uobj_hashset_t *set;
 	set = (uobj_hashset_t*)malloc(sizeof(uobj_hashset_t));
-	if(!set)
+	if(!set) {
+		*error = UOBJ_ERR_OUT_OF_MEMORY;
 		return NULL;
-	if(!uobj_hashset_init(set, callbacks, modulus)) {
+	}
+	*error = uobj_hashset_init(set, callbacks, modulus);
+	if(*error) {
 		free(set);
 		return NULL;
 	}
@@ -74,7 +75,7 @@ void uobj_hashset_delete(
 	}
 }
 
-int uobj_hashset_add(
+uobj_error_t uobj_hashset_add(
 	uobj_hashset_t *set,
 	const uobj_variant_t *value
 ) {
@@ -86,14 +87,12 @@ int uobj_hashset_add(
 	slot_index = (size_t)callbacks->hash(value) % set->modulus;
 	node_head = set->nodes + slot_index;
 	for(node = *node_head; node; node = node->next) {
-		if(!callbacks->value_comparator(value, &node->value)) {
-			errno = EEXIST;
-			return 0;
-		}
+		if(!callbacks->value_comparator(value, &node->value))
+			return UOBJ_ERR_ELEMENT_EXISTS;
 	}
 	node = (uobj_hashset_node_t*)malloc(sizeof(uobj_hashset_node_t));
 	if(!node)
-		return 0;
+		return UOBJ_ERR_OUT_OF_MEMORY;
 	memcpy(&node->value, value, sizeof(uobj_variant_t));
 	node->next = *node_head;
 	*node_head = node;
@@ -106,10 +105,10 @@ int uobj_hashset_add(
 		set->first_used = slot_index;
 	}
 	++set->size;
-	return 1;
+	return UOBJ_OK;
 }
 
-int uobj_hashset_get(
+uobj_error_t uobj_hashset_get(
 	const uobj_hashset_t *set,
 	const uobj_variant_t *lookup_value,
 	const uobj_variant_t **held_value
@@ -126,12 +125,11 @@ int uobj_hashset_get(
 	if(!node) {
 		if(held_value)
 			*held_value = NULL;
-		errno = ENOENT;
-		return 0;
+		return UOBJ_ERR_NO_SUCH_ELEMENT;
 	}
 	if(held_value)
 		*held_value = &node->value;
-	return 1;
+	return UOBJ_OK;
 }
 
 int uobj_hashset_contains(
@@ -150,7 +148,7 @@ int uobj_hashset_contains(
 	return 0;
 }
 
-int uobj_hashset_remove(
+uobj_error_t uobj_hashset_remove(
 	uobj_hashset_t *set,
 	const uobj_variant_t *value,
 	uobj_variant_t *old_value
@@ -165,10 +163,8 @@ int uobj_hashset_remove(
 		if(!callbacks->value_comparator(value, &node->value))
 			break;
 	}
-	if(!node) {
-		errno = ENOENT;
-		return 0;
-	}
+	if(!node)
+		return UOBJ_ERR_NO_SUCH_ELEMENT;
 	if(old_value)
 		memcpy(old_value, &node->value, sizeof(uobj_variant_t));
 	else if(callbacks->value_destructor)
@@ -185,7 +181,7 @@ int uobj_hashset_remove(
 			set->links[link->next].prev = link->prev;
 	}
 	--set->size;
-	return 1;
+	return UOBJ_OK;
 }
 
 void uobj_hashset_clear(
@@ -218,17 +214,20 @@ void uobj_hashset_iterator_init(
 }
 
 uobj_hashset_iterator_t *uobj_hashset_iterator_new(
-	const uobj_hashset_t *set
+	const uobj_hashset_t *set,
+	uobj_error_t *error
 ) {
 	uobj_hashset_iterator_t *iterator;
 	iterator = (uobj_hashset_iterator_t*)malloc(sizeof(uobj_hashset_iterator_t));
-	if(!iterator)
+	if(!iterator) {
+		*error = UOBJ_ERR_OUT_OF_MEMORY;
 		return NULL;
+	}
 	uobj_hashset_iterator_init(iterator, set);
 	return iterator;
 }
 
-int uobj_hashset_iterator_next(
+uobj_error_t uobj_hashset_iterator_next(
 	uobj_hashset_iterator_t *iterator,
 	const uobj_variant_t **value
 ) {
@@ -238,8 +237,7 @@ int uobj_hashset_iterator_next(
 	if(!node) {
 		if(value)
 			*value = NULL;
-		errno = ENOENT;
-		return 0;
+		return UOBJ_ERR_NO_SUCH_ELEMENT;
 	}
 	if(value)
 		*value = &node->value;
@@ -250,5 +248,5 @@ int uobj_hashset_iterator_next(
 		iterator->slot_index = set->links[iterator->slot_index].next;
 		iterator->node = iterator->slot_index == set->modulus ? NULL : set->nodes[iterator->slot_index];
 	}
-	return 1;
+	return UOBJ_OK;
 }

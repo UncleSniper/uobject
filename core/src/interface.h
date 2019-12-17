@@ -2,6 +2,7 @@
 #define UOBJECT_INTERFACE_H
 
 #include "api.h"
+#include "error.h"
 
 struct uobj_context;
 
@@ -12,7 +13,7 @@ typedef struct uobj_interface {
 	UOBJ_CORE_CONST char *UOBJ_CORE_CONST name;
 } uobj_interface_t;
 
-int uobj_interface_init(
+uobj_error_t uobj_interface_init(
 	uobj_interface_t *interface,
 	struct uobj_context *context,
 	const char *name
@@ -20,7 +21,8 @@ int uobj_interface_init(
 
 uobj_interface_t *uobj_interface_new(
 	struct uobj_context *context,
-	const char *name
+	const char *name,
+	uobj_error_t *error
 );
 
 void uobj_interface_destroy(
@@ -31,7 +33,7 @@ void uobj_interface_delete(
 	uobj_interface_t *interface
 );
 
-int uobj_interface_unregister(
+uobj_error_t uobj_interface_unregister(
 	const uobj_interface_t *interface
 );
 

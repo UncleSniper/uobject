@@ -1,10 +1,9 @@
-#include <errno.h>
 #include <string.h>
 
 #include "context.h"
 #include "interface.h"
 
-int uobj_interface_init(
+uobj_error_t uobj_interface_init(
 	uobj_interface_t *interface,
 	uobj_context_t *context,
 	const char *name
@@ -13,22 +12,26 @@ int uobj_interface_init(
 	if(name) {
 		interface->name = strdup(name);
 		if(!interface->name)
-			return 0;
+			return UOBJ_ERR_OUT_OF_MEMORY;
 	}
 	else
 		interface->name = NULL;
-	return 1;
+	return UOBJ_OK;
 }
 
 uobj_interface_t *uobj_interface_new(
 	uobj_context_t *context,
-	const char *name
+	const char *name,
+	uobj_error_t *error
 ) {
 	uobj_interface_t *interface;
 	interface = (uobj_interface_t*)malloc(sizeof(uobj_interface_t));
-	if(!interface)
+	if(!interface) {
+		*error = UOBJ_ERR_OUT_OF_MEMORY;
 		return NULL;
-	if(!uobj_interface_init(interface, context, name)) {
+	}
+	*error = uobj_interface_init(interface, context, name);
+	if(*error) {
 		free(interface);
 		return NULL;
 	}
@@ -53,25 +56,21 @@ void uobj_interface_delete(
 	}
 }
 
-int uobj_interface_unregister(
+uobj_error_t uobj_interface_unregister(
 	const uobj_interface_t *interface
 ) {
 	uobj_context_t *context;
 	uobj_variant_t key, value;
 	context = interface->context;
-	if(!context) {
-		errno = EINVAL;
-		return 0;
-	}
-	if(!uobj_context_has_interface(context, interface)) {
-		errno = ENOENT;
-		return 0;
-	}
+	if(!context)
+		return UOBJ_ERR_NOT_REGISTERED;
+	if(!uobj_context_has_interface(context, interface))
+		return UOBJ_ERR_NOT_REGISTERED;
 	if(interface->name) {
 		key.opointer = (void*)interface->name;
 		uobj_hashmap_remove(&context->named_interfaces, &key, NULL);
 	}
 	key.opointer = (void*)interface;
 	uobj_hashset_remove(&context->known_interfaces, &key, &value);
-	return 1;
+	return UOBJ_OK;
 }

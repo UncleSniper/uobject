@@ -1,4 +1,3 @@
-#include <errno.h>
 #include <string.h>
 
 #include "list.h"
@@ -13,12 +12,15 @@ void uobj_list_init(
 }
 
 uobj_list_t *uobj_list_new(
-	const uobj_list_callbacks_t *callbacks
+	const uobj_list_callbacks_t *callbacks,
+	uobj_error_t *error
 ) {
 	uobj_list_t *list;
 	list = (uobj_list_t*)malloc(sizeof(uobj_list_t));
-	if(!list)
+	if(!list) {
+		*error = UOBJ_ERR_OUT_OF_MEMORY;
 		return NULL;
+	}
 	uobj_list_init(list, callbacks);
 	return list;
 }
@@ -46,14 +48,14 @@ void uobj_list_delete(
 	}
 }
 
-int uobj_list_add_front(
+uobj_error_t uobj_list_add_front(
 	uobj_list_t *list,
 	const uobj_variant_t *value
 ) {
 	uobj_list_node_t *node;
 	node = (uobj_list_node_t*)malloc(sizeof(uobj_list_node_t));
 	if(!node)
-		return 0;
+		return UOBJ_ERR_OUT_OF_MEMORY;
 	memcpy(&node->value, value, sizeof(uobj_variant_t));
 	node->prev = NULL;
 	node->next = list->head;
@@ -63,17 +65,17 @@ int uobj_list_add_front(
 		list->tail = node;
 	list->head = node;
 	++list->size;
-	return 1;
+	return UOBJ_OK;
 }
 
-int uobj_list_add_back(
+uobj_error_t uobj_list_add_back(
 	uobj_list_t *list,
 	const uobj_variant_t *value
 ) {
 	uobj_list_node_t *node;
 	node = (uobj_list_node_t*)malloc(sizeof(uobj_list_node_t));
 	if(!node)
-		return 0;
+		return UOBJ_ERR_OUT_OF_MEMORY;
 	memcpy(&node->value, value, sizeof(uobj_variant_t));
 	node->prev = list->tail;
 	node->next = NULL;
@@ -83,7 +85,7 @@ int uobj_list_add_back(
 		list->head = node;
 	list->tail = node;
 	++list->size;
-	return 1;
+	return UOBJ_OK;
 }
 
 static uobj_list_node_t *find_node_by_index(
@@ -106,22 +108,20 @@ static uobj_list_node_t *find_node_by_index(
 	return node;
 }
 
-int uobj_list_add_before(
+uobj_error_t uobj_list_add_before(
 	uobj_list_t *list,
 	size_t index,
 	const uobj_variant_t *value
 ) {
 	uobj_list_node_t *anchor, *node;
-	if(index > list->size) {
-		errno = EDOM;
-		return 0;
-	}
+	if(index > list->size)
+		return UOBJ_ERR_INDEX_OUT_OF_BOUNDS;
 	anchor = find_node_by_index(list, index);
 	if(!anchor)
 		return uobj_list_add_back(list, value);
 	node = (uobj_list_node_t*)malloc(sizeof(uobj_list_node_t));
 	if(!node)
-		return 0;
+		return UOBJ_ERR_OUT_OF_MEMORY;
 	memcpy(&node->value, value, sizeof(uobj_variant_t));
 	node->prev = anchor->prev;
 	node->next = anchor;
@@ -131,36 +131,34 @@ int uobj_list_add_before(
 		list->head = node;
 	anchor->prev = node;
 	++list->size;
-	return 1;
+	return UOBJ_OK;
 }
 
-int uobj_list_get_front(
+uobj_error_t uobj_list_get_front(
 	const uobj_list_t *list,
 	uobj_variant_t **value
 ) {
 	if(!list->head) {
 		*value = NULL;
-		errno = ENOENT;
-		return 0;
+		return UOBJ_ERR_NO_SUCH_ELEMENT;
 	}
 	*value = &list->head->value;
-	return 1;
+	return UOBJ_OK;
 }
 
-int uobj_list_get_back(
+uobj_error_t uobj_list_get_back(
 	const uobj_list_t *list,
 	uobj_variant_t **value
 ) {
 	if(!list->tail) {
 		*value = NULL;
-		errno = ENOENT;
-		return 0;
+		return UOBJ_ERR_NO_SUCH_ELEMENT;
 	}
 	*value = &list->tail->value;
 	return 1;
 }
 
-int uobj_list_get_at(
+uobj_error_t uobj_list_get_at(
 	const uobj_list_t *list,
 	size_t index,
 	uobj_variant_t **value
@@ -168,25 +166,22 @@ int uobj_list_get_at(
 	uobj_list_node_t *node;
 	if(index >= list->size) {
 		*value = NULL;
-		errno = EDOM;
-		return 0;
+		return UOBJ_ERR_INDEX_OUT_OF_BOUNDS;
 	}
 	node = find_node_by_index(list, index);
 	*value = &node->value;
-	return 1;
+	return UOBJ_OK;
 }
 
-int uobj_list_remove_front(
+uobj_error_t uobj_list_remove_front(
 	uobj_list_t *list,
 	uobj_variant_t *old_value
 ) {
 	uobj_list_node_t *node;
 	const uobj_list_callbacks_t *callbacks;
 	node = list->head;
-	if(!node) {
-		errno = ENOENT;
-		return 0;
-	}
+	if(!node)
+		return UOBJ_ERR_NO_SUCH_ELEMENT;
 	list->head = node->next;
 	if(node->next)
 		node->next->prev = NULL;
@@ -199,20 +194,18 @@ int uobj_list_remove_front(
 		callbacks->value_destructor(&node->value);
 	free(node);
 	--list->size;
-	return 1;
+	return UOBJ_OK;
 }
 
-int uobj_list_remove_back(
+uobj_error_t uobj_list_remove_back(
 	uobj_list_t *list,
 	uobj_variant_t *old_value
 ) {
 	uobj_list_node_t *node;
 	const uobj_list_callbacks_t *callbacks;
 	node = list->tail;
-	if(!node) {
-		errno = ENOENT;
-		return 0;
-	}
+	if(!node)
+		return UOBJ_ERR_NO_SUCH_ELEMENT;
 	list->tail = node->prev;
 	if(node->prev)
 		node->prev->next = NULL;
@@ -225,20 +218,18 @@ int uobj_list_remove_back(
 		callbacks->value_destructor(&node->value);
 	free(node);
 	--list->size;
-	return 1;
+	return UOBJ_OK;
 }
 
-int uobj_list_remove_at(
+uobj_error_t uobj_list_remove_at(
 	uobj_list_t *list,
 	size_t index,
 	uobj_variant_t *old_value
 ) {
 	uobj_list_node_t *node;
 	const uobj_list_callbacks_t *callbacks;
-	if(index >= list->size) {
-		errno = EDOM;
-		return 0;
-	}
+	if(index >= list->size)
+		return UOBJ_ERR_INDEX_OUT_OF_BOUNDS;
 	node = find_node_by_index(list, index);
 	if(node->prev)
 		node->prev->next = node->next;
@@ -255,7 +246,7 @@ int uobj_list_remove_at(
 		callbacks->value_destructor(&node->value);
 	free(node);
 	--list->size;
-	return 1;
+	return UOBJ_OK;
 }
 
 void uobj_list_clear(
@@ -275,27 +266,31 @@ void uobj_list_iterator_init(
 }
 
 uobj_list_iterator_t *uobj_list_iterator_new(
-	const uobj_list_t *list
+	const uobj_list_t *list,
+	uobj_error_t *error
 ) {
 	uobj_list_iterator_t *iterator;
 	iterator = (uobj_list_iterator_t*)malloc(sizeof(uobj_list_iterator_t));
-	if(!iterator)
+	if(!iterator) {
+		*error = UOBJ_ERR_OUT_OF_MEMORY;
 		return NULL;
+	}
 	uobj_list_iterator_init(iterator, list);
 	return iterator;
 }
 
 uobj_variant_t *uobj_list_iterator_get(
-	const uobj_list_iterator_t *iterator
+	const uobj_list_iterator_t *iterator,
+	uobj_error_t *error
 ) {
 	if(!iterator->node) {
-		errno = ENOENT;
+		*error = UOBJ_ERR_NO_SUCH_ELEMENT;
 		return NULL;
 	}
 	return &iterator->node->value;
 }
 
-int uobj_list_iterator_next(
+uobj_error_t uobj_list_iterator_next(
 	uobj_list_iterator_t *iterator,
 	uobj_variant_t **value
 ) {
@@ -306,17 +301,16 @@ int uobj_list_iterator_next(
 		next = iterator->list->head;
 	iterator->node = next;
 	if(!next) {
-		errno = ENOENT;
 		if(value)
 			*value = NULL;
-		return 0;
+		return UOBJ_ERR_NO_SUCH_ELEMENT;
 	}
 	if(value)
 		*value = &next->value;
-	return 1;
+	return UOBJ_OK;
 }
 
-int uobj_list_iterator_previous(
+uobj_error_t uobj_list_iterator_previous(
 	uobj_list_iterator_t *iterator,
 	uobj_variant_t **value
 ) {
@@ -327,12 +321,11 @@ int uobj_list_iterator_previous(
 		prev = iterator->list->tail;
 	iterator->node = prev;
 	if(!prev) {
-		errno = ENOENT;
 		if(value)
 			*value = NULL;
-		return 0;
+		return UOBJ_ERR_NO_SUCH_ELEMENT;
 	}
 	if(value)
 		*value = &prev->value;
-	return 1;
+	return UOBJ_OK;
 }

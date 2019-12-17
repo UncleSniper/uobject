@@ -2,6 +2,7 @@
 #define UOBJECT_LIST_H
 
 #include "api.h"
+#include "error.h"
 #include "variant.h"
 
 typedef struct uobj_list_callbacks {
@@ -32,7 +33,8 @@ void uobj_list_init(
 );
 
 uobj_list_t *uobj_list_new(
-	const uobj_list_callbacks_t *callbacks
+	const uobj_list_callbacks_t *callbacks,
+	uobj_error_t *error
 );
 
 void uobj_list_destroy(
@@ -43,49 +45,49 @@ void uobj_list_delete(
 	uobj_list_t *list
 );
 
-int uobj_list_add_front(
+uobj_error_t uobj_list_add_front(
 	uobj_list_t *list,
 	const uobj_variant_t *value
 );
 
-int uobj_list_add_back(
+uobj_error_t uobj_list_add_back(
 	uobj_list_t *list,
 	const uobj_variant_t *value
 );
 
-int uobj_list_add_before(
+uobj_error_t uobj_list_add_before(
 	uobj_list_t *list,
 	size_t index,
 	const uobj_variant_t *value
 );
 
-int uobj_list_get_front(
+uobj_error_t uobj_list_get_front(
 	const uobj_list_t *list,
 	uobj_variant_t **value
 );
 
-int uobj_list_get_back(
+uobj_error_t uobj_list_get_back(
 	const uobj_list_t *list,
 	uobj_variant_t **value
 );
 
-int uobj_list_get_at(
+uobj_error_t uobj_list_get_at(
 	const uobj_list_t *list,
 	size_t index,
 	uobj_variant_t **value
 );
 
-int uobj_list_remove_front(
+uobj_error_t uobj_list_remove_front(
 	uobj_list_t *list,
 	uobj_variant_t *old_value
 );
 
-int uobj_list_remove_back(
+uobj_error_t uobj_list_remove_back(
 	uobj_list_t *list,
 	uobj_variant_t *old_value
 );
 
-int uobj_list_remove_at(
+uobj_error_t uobj_list_remove_at(
 	uobj_list_t *list,
 	size_t index,
 	uobj_variant_t *old_value
@@ -101,19 +103,21 @@ void uobj_list_iterator_init(
 );
 
 uobj_list_iterator_t *uobj_list_iterator_new(
-	const uobj_list_t *list
+	const uobj_list_t *list,
+	uobj_error_t *error
 );
 
 uobj_variant_t *uobj_list_iterator_get(
-	const uobj_list_iterator_t *iterator
+	const uobj_list_iterator_t *iterator,
+	uobj_error_t *error
 );
 
-int uobj_list_iterator_next(
+uobj_error_t uobj_list_iterator_next(
 	uobj_list_iterator_t *iterator,
 	uobj_variant_t **value
 );
 
-int uobj_list_iterator_previous(
+uobj_error_t uobj_list_iterator_previous(
 	uobj_list_iterator_t *iterator,
 	uobj_variant_t **value
 );

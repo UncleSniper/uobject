@@ -1,6 +1,7 @@
 #ifndef UOBJECT_HASHSET_H
 #define UOBJECT_HASHSET_H
 
+#include "error.h"
 #include "hashtable.h"
 
 typedef struct uobj_hashset_callbacks {
@@ -29,7 +30,7 @@ typedef struct uobj_hashset_iterator {
 	uobj_hashset_node_t *UOBJ_CORE_CONST node;
 } uobj_hashset_iterator_t;
 
-int uobj_hashset_init(
+uobj_error_t uobj_hashset_init(
 	uobj_hashset_t *set,
 	const uobj_hashset_callbacks_t *callbacks,
 	size_t modulus
@@ -37,7 +38,8 @@ int uobj_hashset_init(
 
 uobj_hashset_t *uobj_hashset_new(
 	const uobj_hashset_callbacks_t *callbacks,
-	size_t modulus
+	size_t modulus,
+	uobj_error_t *error
 );
 
 void uobj_hashset_destroy(
@@ -48,12 +50,12 @@ void uobj_hashset_delete(
 	uobj_hashset_t *set
 );
 
-int uobj_hashset_add(
+uobj_error_t uobj_hashset_add(
 	uobj_hashset_t *set,
 	const uobj_variant_t *value
 );
 
-int uobj_hashset_get(
+uobj_error_t uobj_hashset_get(
 	const uobj_hashset_t *set,
 	const uobj_variant_t *lookup_value,
 	const uobj_variant_t **held_value
@@ -64,7 +66,7 @@ int uobj_hashset_contains(
 	const uobj_variant_t *value
 );
 
-int uobj_hashset_remove(
+uobj_error_t uobj_hashset_remove(
 	uobj_hashset_t *set,
 	const uobj_variant_t *value,
 	uobj_variant_t *old_value
@@ -80,10 +82,11 @@ void uobj_hashset_iterator_init(
 );
 
 uobj_hashset_iterator_t *uobj_hashset_iterator_new(
-	const uobj_hashset_t *set
+	const uobj_hashset_t *set,
+	uobj_error_t *error
 );
 
-int uobj_hashset_iterator_next(
+uobj_error_t uobj_hashset_iterator_next(
 	uobj_hashset_iterator_t *iterator,
 	const uobj_variant_t **value
 );
